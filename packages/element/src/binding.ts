@@ -135,6 +135,41 @@ export const bindOrUnbindBindingElement = (
   );
   bindOrUnbindBindingElementEdge(arrow, start, "start", scene);
   bindOrUnbindBindingElementEdge(arrow, end, "end", scene);
+  if (start.focusPoint || end.focusPoint) {
+    // If the strategy dictates a focus point override, then
+    // update the arrow points to point to the focus point.
+    const updates: PointsPositionUpdates = new Map();
+
+    if (start.focusPoint) {
+      updates.set(0, {
+        isDragging: false,
+        point:
+          updateBoundPoint(
+            arrow,
+            "startBinding",
+            arrow.startBinding,
+            start.element,
+            scene.getNonDeletedElementsMap(),
+          ) || arrow.points[0],
+      });
+    }
+
+    if (end.focusPoint) {
+      updates.set(arrow.points.length - 1, {
+        isDragging: false,
+        point:
+          updateBoundPoint(
+            arrow,
+            "endBinding",
+            arrow.endBinding,
+            end.element,
+            scene.getNonDeletedElementsMap(),
+          ) || arrow.points[arrow.points.length - 1],
+      });
+    }
+
+    LinearElementEditor.movePoints(arrow, scene, updates);
+  }
 };
 
 const bindOrUnbindBindingElementEdge = (
