@@ -238,6 +238,7 @@ import {
   calculateFixedPointForNonElbowArrowBinding,
   normalizeFixedPoint,
   bindOrUnbindBindingElement,
+  updateBoundPoint,
 } from "@excalidraw/element";
 
 import type { GlobalPoint, LocalPoint, Radians } from "@excalidraw/math";
@@ -6222,40 +6223,31 @@ class App extends React.Component<AppProps, AppState> {
           const startElement = this.scene.getElement(
             multiElement.startBinding.elementId,
           ) as ExcalidrawBindableElement;
-          const avoidancePoint = getOutlineAvoidingPoint(
+          const localPoint = updateBoundPoint(
             multiElement,
+            "startBinding",
+            multiElement.startBinding,
             startElement,
-            startPoint,
-            0,
             elementsMap,
           );
-          if (!pointsEqual(startPoint, avoidancePoint)) {
+          const avoidancePoint = localPoint
+            ? LinearElementEditor.getPointGlobalCoordinates(
+                multiElement,
+                localPoint,
+                elementsMap,
+              )
+            : null;
+          if (avoidancePoint && !pointsEqual(startPoint, avoidancePoint)) {
+            const point = LinearElementEditor.pointFromAbsoluteCoords(
+              multiElement,
+              avoidancePoint,
+              elementsMap,
+            );
+
             LinearElementEditor.movePoints(
               multiElement,
               this.scene,
-              new Map([
-                [
-                  0,
-                  {
-                    point: LinearElementEditor.pointFromAbsoluteCoords(
-                      multiElement,
-                      avoidancePoint,
-                      elementsMap,
-                    ),
-                  },
-                ],
-              ]),
-              {
-                startBinding: {
-                  ...multiElement.startBinding,
-                  ...calculateFixedPointForNonElbowArrowBinding(
-                    multiElement,
-                    startElement,
-                    "start",
-                    elementsMap,
-                  ),
-                },
-              },
+              new Map([[0, { point }]]),
             );
           }
         }
@@ -8155,6 +8147,7 @@ class App extends React.Component<AppProps, AppState> {
           ]),
           this.scene,
           this.state,
+          { newArrow: true },
         );
       }
       this.setState((prevState) => {

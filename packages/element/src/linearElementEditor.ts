@@ -23,9 +23,9 @@ import {
 } from "@excalidraw/common";
 
 import {
+  bindingBorderTest,
   deconstructLinearOrFreeDrawElement,
   getHoveredElementForBinding,
-  hitElementItself,
   isPathALoop,
   type Store,
 } from "@excalidraw/element";
@@ -1989,12 +1989,12 @@ const pointDraggingUpdates = (
           );
         const otherPointInsideElement =
           !!hoveredElement &&
-          hitElementItself({
-            element: hoveredElement,
-            point: otherGlobalPoint,
+          !!bindingBorderTest(
+            hoveredElement,
+            otherGlobalPoint,
             elementsMap,
-            threshold: 0,
-          });
+            appState.zoom,
+          );
 
         if (
           isBindingEnabled(appState) &&
