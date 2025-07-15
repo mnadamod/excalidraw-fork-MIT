@@ -595,21 +595,6 @@ export const bindBindingElement = (
   }
 };
 
-export const isBindingElementSimpleAndAlreadyBound = (
-  linearElement: NonDeleted<ExcalidrawArrowElement>,
-  alreadyBoundToId: ExcalidrawBindableElement["id"] | undefined,
-  bindableElement: ExcalidrawBindableElement,
-): boolean => {
-  return (
-    alreadyBoundToId === bindableElement.id &&
-    isBindingElementSimple(linearElement)
-  );
-};
-
-const isBindingElementSimple = (
-  linearElement: NonDeleted<ExcalidrawArrowElement>,
-): boolean => linearElement.points.length < 3 && !isElbowArrow(linearElement);
-
 export const unbindBindingElement = (
   arrow: NonDeleted<ExcalidrawArrowElement>,
   startOrEnd: "start" | "end",

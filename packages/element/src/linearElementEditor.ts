@@ -42,6 +42,7 @@ import type {
 } from "@excalidraw/excalidraw/types";
 
 import {
+  getGlobalFixedPointForBindableElement,
   getOutlineAvoidingPoint,
   isBindingEnabled,
   maybeSuggestBindingsForBindingElementAtCoords,
@@ -55,7 +56,12 @@ import {
 import { headingIsHorizontal, vectorToHeading } from "./heading";
 import { mutateElement } from "./mutateElement";
 import { getBoundTextElement, handleBindTextResize } from "./textElement";
-import { isArrowElement, isBindingElement, isElbowArrow } from "./typeChecks";
+import {
+  isArrowElement,
+  isBindingElement,
+  isElbowArrow,
+  isSimpleArrow,
+} from "./typeChecks";
 
 import { ShapeCache, toggleLinePolygonState } from "./shape";
 
@@ -1934,12 +1940,13 @@ const pointDraggingUpdates = (
   elements: readonly Ordered<NonDeletedExcalidrawElement>[],
   appState: AppState,
 ): PointsPositionUpdates => {
+  const [, , , , cx, cy] = getElementAbsoluteCoords(element, elementsMap, true);
   const hasMidPoints =
     selectedPointsIndices.filter(
       (_, idx) => idx > 0 && idx < element.points.length - 1,
     ).length > 0;
 
-  return new Map(
+  const updates = new Map(
     selectedPointsIndices.map((pointIndex) => {
       let newPointPosition: LocalPoint =
         pointIndex === lastClickedPoint
@@ -1956,14 +1963,10 @@ const pointDraggingUpdates = (
             );
 
       if (
+        isSimpleArrow(element) &&
         !hasMidPoints &&
         (pointIndex === 0 || pointIndex === element.points.length - 1)
       ) {
-        const [, , , , cx, cy] = getElementAbsoluteCoords(
-          element,
-          elementsMap,
-          true,
-        );
         let newGlobalPointPosition = pointRotateRads(
           pointFrom<GlobalPoint>(
             element.x + newPointPosition[0],
@@ -2027,4 +2030,60 @@ const pointDraggingUpdates = (
       ];
     }),
   );
+
+  if (isSimpleArrow(element)) {
+    const adjacentPointIndices =
+      element.points.length === 2
+        ? [0, 1]
+        : element.points.length === 3
+        ? [1]
+        : [1, element.points.length - 2];
+
+    adjacentPointIndices
+      .filter((adjacentPointIndex) =>
+        selectedPointsIndices.includes(adjacentPointIndex),
+      )
+      .flatMap((adjacentPointIndex) =>
+        element.points.length === 3
+          ? [0, 2]
+          : adjacentPointIndex === 1
+          ? 0
+          : element.points.length - 1,
+      )
+      .forEach((pointIndex) => {
+        const binding =
+          element[pointIndex === 0 ? "startBinding" : "endBinding"];
+        const bindingIsOrbiting = binding?.mode === "orbit";
+        if (bindingIsOrbiting) {
+          const hoveredElement = elementsMap.get(
+            binding.elementId,
+          ) as ExcalidrawBindableElement;
+          const focusGlobalPoint = getGlobalFixedPointForBindableElement(
+            binding.fixedPoint,
+            hoveredElement,
+            elementsMap,
+          );
+          const newGlobalPointPosition = getOutlineAvoidingPoint(
+            element,
+            hoveredElement,
+            focusGlobalPoint,
+            pointIndex,
+            elementsMap,
+          );
+          const newPointPosition = LinearElementEditor.createPointAt(
+            element,
+            elementsMap,
+            newGlobalPointPosition[0] - linearElementEditor.pointerOffset.x,
+            newGlobalPointPosition[1] - linearElementEditor.pointerOffset.y,
+            null,
+          );
+          updates.set(pointIndex, {
+            point: newPointPosition,
+            isDragging: false,
+          });
+        }
+      });
+  }
+
+  return updates;
 };
