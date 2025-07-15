@@ -1990,7 +1990,7 @@ const pointDraggingUpdates = (
           isBindingEnabled(appState) &&
           isArrowElement(element) &&
           hoveredElement &&
-          appState.bindMode === "focus" &&
+          appState.bindMode === "orbit" &&
           !otherPointInsideElement
         ) {
           newGlobalPointPosition = getOutlineAvoidingPoint(

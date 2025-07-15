@@ -4325,7 +4325,7 @@ class App extends React.Component<AppProps, AppState> {
       }
 
       // Handle Alt key for bind mode
-      if (event.key === KEYS.ALT && this.state.bindMode === "focus") {
+      if (event.key === KEYS.ALT && this.state.bindMode === "orbit") {
         // Cancel any pending bind mode timer
         if (this.bindModeHandler) {
           clearTimeout(this.bindModeHandler);
@@ -4646,7 +4646,7 @@ class App extends React.Component<AppProps, AppState> {
     ) {
       // Handle Alt key release for bind mode
       this.setState({
-        bindMode: "focus",
+        bindMode: "orbit",
       });
 
       // Restart the timer if we're creating/editing a linear element and hovering over an element
@@ -4669,9 +4669,9 @@ class App extends React.Component<AppProps, AppState> {
         if (hoveredElement && !this.bindModeHandler) {
           this.bindModeHandler = setTimeout(() => {
             if (hoveredElement) {
-              // this.setState({
-              //   bindMode: "fixed",
-              // });
+              this.setState({
+                bindMode: "inside",
+              });
             } else {
               this.bindModeHandler = null;
             }
@@ -5982,10 +5982,7 @@ class App extends React.Component<AppProps, AppState> {
         this.state.newElement
       ) {
         // Timed bind mode handler for arrow elements
-        if (
-          isArrowElement(this.state.newElement) &&
-          this.state.bindMode === "focus"
-        ) {
+        if (isArrowElement(this.state.newElement)) {
           const hoveredElement = getHoveredElementForBinding(
             pointFrom<GlobalPoint>(scenePointer.x, scenePointer.y),
             this.scene.getNonDeletedElements(),
@@ -5993,48 +5990,56 @@ class App extends React.Component<AppProps, AppState> {
             this.state.zoom,
           );
 
-          if (this.bindModeHandler && !hoveredElement) {
-            clearTimeout(this.bindModeHandler);
-            this.bindModeHandler = null;
-          } else if (!this.bindModeHandler && hoveredElement) {
-            this.bindModeHandler = setTimeout(() => {
-              if (hoveredElement) {
-                flushSync(() => {
-                  // this.setState({
-                  //   bindMode: "fixed",
-                  // });
-                });
+          if (this.state.bindMode === "orbit") {
+            if (this.bindModeHandler && !hoveredElement) {
+              clearTimeout(this.bindModeHandler);
+              this.bindModeHandler = null;
+            } else if (!this.bindModeHandler && hoveredElement) {
+              this.bindModeHandler = setTimeout(() => {
+                if (hoveredElement) {
+                  flushSync(() => {
+                    this.setState({
+                      bindMode: "inside",
+                    });
+                  });
 
-                if (isArrowElement(this.state.newElement)) {
-                  const lastSceneCoords = viewportCoordsToSceneCoords(
-                    {
-                      clientX: this.lastPointerMoveEvent?.clientX ?? 0,
-                      clientY: this.lastPointerMoveEvent?.clientY ?? 0,
-                    },
-                    this.state,
-                  );
-                  this.scene.mutateElement(
-                    this.state.newElement,
-                    {
-                      points: [
-                        ...this.state.newElement.points.slice(0, -1),
-                        LinearElementEditor.pointFromAbsoluteCoords(
-                          this.state.newElement,
-                          pointFrom<GlobalPoint>(
-                            lastSceneCoords.x,
-                            lastSceneCoords.y,
+                  if (isArrowElement(this.state.newElement)) {
+                    const lastSceneCoords = viewportCoordsToSceneCoords(
+                      {
+                        clientX: this.lastPointerMoveEvent?.clientX ?? 0,
+                        clientY: this.lastPointerMoveEvent?.clientY ?? 0,
+                      },
+                      this.state,
+                    );
+                    this.scene.mutateElement(
+                      this.state.newElement,
+                      {
+                        points: [
+                          ...this.state.newElement.points.slice(0, -1),
+                          LinearElementEditor.pointFromAbsoluteCoords(
+                            this.state.newElement,
+                            pointFrom<GlobalPoint>(
+                              lastSceneCoords.x,
+                              lastSceneCoords.y,
+                            ),
+                            this.scene.getNonDeletedElementsMap(),
                           ),
-                          this.scene.getNonDeletedElementsMap(),
-                        ),
-                      ],
-                    },
-                    { informMutation: false, isDragging: false },
-                  );
+                        ],
+                      },
+                      { informMutation: false, isDragging: false },
+                    );
+                  }
+                } else {
+                  this.bindModeHandler = null;
                 }
-              } else {
-                this.bindModeHandler = null;
-              }
-            }, BIND_MODE_TIMEOUT);
+              }, BIND_MODE_TIMEOUT);
+            }
+          } else if (!hoveredElement) {
+            flushSync(() => {
+              this.setState({
+                bindMode: "orbit",
+              });
+            });
           }
         }
 
@@ -6121,7 +6126,7 @@ class App extends React.Component<AppProps, AppState> {
 
         if (
           isArrowElement(multiElement) &&
-          this.state.bindMode === "focus" &&
+          this.state.bindMode === "orbit" &&
           isBindingEnabled(this.state)
         ) {
           const hoveredElement = getHoveredElementForBinding(
@@ -6910,13 +6915,13 @@ class App extends React.Component<AppProps, AppState> {
     this.lastPointerUpEvent = event;
 
     // Cancel any pending timeout for bind mode change
-    if (this.state.bindMode === "fixed" || this.state.bindMode === "skip") {
+    if (this.state.bindMode === "inside" || this.state.bindMode === "skip") {
       if (this.bindModeHandler) {
         clearTimeout(this.bindModeHandler);
       }
       this.bindModeHandler = null;
       this.setState({
-        bindMode: "focus",
+        bindMode: "orbit",
       });
     }
 
@@ -8568,15 +8573,15 @@ class App extends React.Component<AppProps, AppState> {
           return;
         }
 
-        // Timed bind mode handler for arrow elements
-        if (this.state.bindMode === "focus") {
-          const hoveredElement = getHoveredElementForBinding(
-            pointFrom<GlobalPoint>(pointerCoords.x, pointerCoords.y),
-            this.scene.getNonDeletedElements(),
-            elementsMap,
-            this.state.zoom,
-          );
+        const hoveredElement = getHoveredElementForBinding(
+          pointFrom<GlobalPoint>(pointerCoords.x, pointerCoords.y),
+          this.scene.getNonDeletedElements(),
+          elementsMap,
+          this.state.zoom,
+        );
 
+        // Timed bind mode handler for arrow elements
+        if (this.state.bindMode === "orbit") {
           if (this.bindModeHandler && !hoveredElement) {
             clearTimeout(this.bindModeHandler);
             this.bindModeHandler = null;
@@ -8584,9 +8589,9 @@ class App extends React.Component<AppProps, AppState> {
             this.bindModeHandler = setTimeout(() => {
               if (hoveredElement) {
                 flushSync(() => {
-                  // this.setState({
-                  //   bindMode: "fixed",
-                  // });
+                  this.setState({
+                    bindMode: "inside",
+                  });
                 });
                 const newState = LinearElementEditor.handlePointDragging(
                   event,
@@ -8609,6 +8614,12 @@ class App extends React.Component<AppProps, AppState> {
               }
             }, BIND_MODE_TIMEOUT);
           }
+        } else if (!hoveredElement) {
+          flushSync(() => {
+            this.setState({
+              bindMode: "orbit",
+            });
+          });
         }
 
         const newState = LinearElementEditor.handlePointDragging(
@@ -9095,7 +9106,7 @@ class App extends React.Component<AppProps, AppState> {
 
             if (!arrowEndpointsAboutToBindToSameElement) {
               const [targetPointX, targetPointY] =
-                this.state.bindMode === "focus" && isBindingEnabled(this.state)
+                this.state.bindMode === "orbit" && isBindingEnabled(this.state)
                   ? getOutlineAvoidingPoint(
                       newElement,
                       hoveredElement,
@@ -9453,7 +9464,7 @@ class App extends React.Component<AppProps, AppState> {
 
       this.setState({
         selectedElementsAreBeingDragged: false,
-        bindMode: "focus",
+        bindMode: "orbit",
       });
 
       if (
