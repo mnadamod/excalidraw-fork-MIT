@@ -6230,41 +6230,52 @@ class App extends React.Component<AppProps, AppState> {
           multiElement.startBinding.mode === "orbit"
         ) {
           const elementsMap = this.scene.getNonDeletedElementsMap();
-          const startPoint =
-            LinearElementEditor.getPointAtIndexGlobalCoordinates(
-              multiElement,
-              0,
-              elementsMap,
-            );
-          const startElement = this.scene.getElement(
-            multiElement.startBinding.elementId,
-          ) as ExcalidrawBindableElement;
-          const localPoint = updateBoundPoint(
-            multiElement,
-            "startBinding",
-            multiElement.startBinding,
-            startElement,
-            elementsMap,
+          const hoveredElement = getHoveredElementForBinding(
+            pointFrom<GlobalPoint>(scenePointerX, scenePointerY),
+            this.scene.getNonDeletedElements(),
+            this.scene.getNonDeletedElementsMap(),
+            this.state.zoom,
           );
-          const avoidancePoint = localPoint
-            ? LinearElementEditor.getPointGlobalCoordinates(
+          if (
+            !hoveredElement ||
+            hoveredElement.id !== multiElement.startBinding.elementId
+          ) {
+            const startPoint =
+              LinearElementEditor.getPointAtIndexGlobalCoordinates(
                 multiElement,
-                localPoint,
+                0,
                 elementsMap,
-              )
-            : null;
-          if (avoidancePoint && !pointsEqual(startPoint, avoidancePoint)) {
-            const point = LinearElementEditor.pointFromAbsoluteCoords(
+              );
+            const startElement = this.scene.getElement(
+              multiElement.startBinding.elementId,
+            ) as ExcalidrawBindableElement;
+            const localPoint = updateBoundPoint(
               multiElement,
-              avoidancePoint,
+              "startBinding",
+              multiElement.startBinding,
+              startElement,
               elementsMap,
             );
+            const avoidancePoint = localPoint
+              ? LinearElementEditor.getPointGlobalCoordinates(
+                  multiElement,
+                  localPoint,
+                  elementsMap,
+                )
+              : null;
+            if (avoidancePoint && !pointsEqual(startPoint, avoidancePoint)) {
+              const point = LinearElementEditor.pointFromAbsoluteCoords(
+                multiElement,
+                avoidancePoint,
+                elementsMap,
+              );
 
-            LinearElementEditor.movePoints(
-              multiElement,
-              this.scene,
-              new Map([[0, { point }]]),
-            );
+              LinearElementEditor.movePoints(
+                multiElement,
+                this.scene,
+                new Map([[0, { point }]]),
+              );
+            }
           }
         }
 
