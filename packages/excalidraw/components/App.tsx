@@ -6931,9 +6931,13 @@ class App extends React.Component<AppProps, AppState> {
         clearTimeout(this.bindModeHandler);
       }
       this.bindModeHandler = null;
-      this.setState({
-        bindMode: "orbit",
-      });
+      // We need this iteration to complete binding and change
+      // back to orbit mode after that
+      setTimeout(() =>
+        this.setState({
+          bindMode: "orbit",
+        }),
+      );
     }
 
     const scenePointer = viewportCoordsToSceneCoords(
