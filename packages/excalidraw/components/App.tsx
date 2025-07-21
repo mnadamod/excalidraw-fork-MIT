@@ -8511,24 +8511,6 @@ class App extends React.Component<AppProps, AppState> {
         event[KEYS.CTRL_OR_CMD] ? null : this.getEffectiveGridSize(),
       );
 
-      // for arrows/lines, don't start dragging until a given threshold
-      // to ensure we don't create a 2-point arrow by mistake when
-      // user clicks mouse in a way that it moves a tiny bit (thus
-      // triggering pointermove)
-      if (
-        !pointerDownState.drag.hasOccurred &&
-        (this.state.activeTool.type === "arrow" ||
-          this.state.activeTool.type === "line")
-      ) {
-        if (
-          pointDistance(
-            pointFrom(pointerCoords.x, pointerCoords.y),
-            pointFrom(pointerDownState.origin.x, pointerDownState.origin.y),
-          ) < DRAGGING_THRESHOLD
-        ) {
-          return;
-        }
-      }
       if (pointerDownState.resize.isResizing) {
         pointerDownState.lastCoords.x = pointerCoords.x;
         pointerDownState.lastCoords.y = pointerCoords.y;
