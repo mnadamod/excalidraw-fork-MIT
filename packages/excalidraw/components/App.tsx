@@ -2159,14 +2159,10 @@ class App extends React.Component<AppProps, AppState> {
     setTimeout(() => {
       if (this.state.selectedLinearElement?.isEditing) {
         this.setState({
-          selectedLinearElement: new LinearElementEditor(
-            LinearElementEditor.getElement(
-              this.state.selectedLinearElement.elementId,
-              this.scene.getNonDeletedElementsMap(),
-            )!,
-            this.scene.getNonDeletedElementsMap(),
-            false, // exit editing mode
-          ),
+          selectedLinearElement: {
+            ...this.state.selectedLinearElement,
+            isEditing: false,
+          },
         });
       }
     });
@@ -4434,11 +4430,10 @@ class App extends React.Component<AppProps, AppState> {
                 this.store.scheduleCapture();
                 if (!isElbowArrow(selectedElement)) {
                   this.setState({
-                    selectedLinearElement:
-                      LinearElementEditor.createEditingInstance(
-                        selectedElement,
-                        this.scene.getNonDeletedElementsMap(),
-                      ),
+                    selectedLinearElement: new LinearElementEditor(
+                      selectedElement,
+                      this.scene.getNonDeletedElementsMap(),
+                    ),
                   });
                 }
               }
