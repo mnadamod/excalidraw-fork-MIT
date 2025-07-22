@@ -4429,13 +4429,7 @@ class App extends React.Component<AppProps, AppState> {
               ) {
                 this.store.scheduleCapture();
                 if (!isElbowArrow(selectedElement)) {
-                  this.setState({
-                    selectedLinearElement: new LinearElementEditor(
-                      selectedElement,
-                      this.scene.getNonDeletedElementsMap(),
-                      true,
-                    ),
-                  });
+                  this.actionManager.executeAction(actionToggleLinearEditor);
                 }
               }
             }
